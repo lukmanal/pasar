@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="id">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Aplikasi Input Tabungan Pasar<style>
+  /* Reset & base */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    max-width: 350px; 
+    height: 600px;
+    overflow: hidden;
+  }
+  #app {
+    padding: 10px 15px;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 8px;
+    color: #2a7ae2;
+    text-align: center;
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  input[type=date], select, input[type=text] {
+    width: 100%;
+    padding: 8px 10px;
+    margin-top: 4px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  input[type=text]::-webkit-inner-spin-button, 
+  input[type=text]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+  input[type=text] {
+    -moz-appearance:textfield;
+  }
+  .readonly-input {
+    background: #eee;
+  }
+  button {
+    margin-top: 15px;
+    background: #2a7ae2;
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 8px rgb(42 122 226 /0.3);
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #255db5;
+  }
+  button:disabled {
+    background: #a3c0f8;
+    cursor: default;
+  }
+  .btn-secondary {
+    background: #444;
+    margin-top: 8px;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: #222;
+  }
+  #transactions {
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.85rem;
+  }
+  #transactions th, #transactions td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  #transactions th {
+    background: #2a7ae2;
+    color: white;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  #message {
+    margin-top: 10px;
+    color: red;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* Receipt styling for print */
+  #receipt-template {
+    font-family: monospace, monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    padding: 15px;
+  }
+  #receipt-copy-template {
+    font-family: monospace, monospace;
+    font-size: 11px;
+    white-space: pre-wrap;
+    padding: 12px;
+  }
+
+  /* Scrollbar styling for mobile */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a7ae2;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #eee;
+  }
+
+  /* Responsive text scaling for mobile */
+  @media (max-width: 350px) {
+    h1 {
+      font-size: 1.4rem;
+    }
+    button {
+      font-size: 1rem;
+      padding: 10px;
+    }
+  }
+<div id="app" role="main" aria-label="Aplikasi Input Tabungan Pasar">
+   <h1>Input Tabungan Pasar</h1>
+
+   <label for="tanggal">Tanggal Tabungan</label>
+   <input type="date" id="tanggal" aria-required="true" />
+
+   <label for="pasar">Pilih Pasar</label>
+   <select id="pasar" aria-required="true" aria-label="Daftar Pasar">
+     <option value="">-- Pilih Pasar --</option>
+   </select>
+
+   <label for="pelanggan">Pilih Pelanggan</label>
+   <select id="pelanggan" aria-required="true" aria-label="Daftar Pelanggan">
+     <option value="">-- Pilih Pelanggan --</option>
+   </select>
+
+   <label for="saldoSaatIni">Saldo Tabungan Saat Ini (Rp</label>
+   <input type="text" id="saldoSaatIni" readonly class="readonly-input" aria-readonly="true" value="0" />
+
+   <label for="setoran">Jumlah Setoran (Rp</label>
+   <input type="text" id="setoran" inputmode="numeric" pattern="[0-9]*" placeholder="Masukkan jumlah setoran" aria-required="true"/>
+
+   <label for="saldoTotal">Saldo Total Setelah Setoran (Rp</label>
+   <input type="text" id="saldoTotal" readonly class="readonly-input" aria-readonly="true" value="0" />
+
+   <button id="btnTambah">Tambah Tabungan</button>
+   <button id="btnExportExcel" class="btn-secondary">Export Semua Data ke Excel</button>
+   <button id="btnConnectPrinter" class="btn-secondary">Hubungkan Printer Bluetooth</button>
+   <div id="message" role="alert" aria-live="polite</div>
+
+   <table id="transactions" aria-label="Daftar tabungan pelanggan">
+     <thead>
+       <tr>
+         <th>Tanggal</th>
+         </th>
+         <th>Pelanggan</th>
+         <th>Saldo Sebelumnya (Rp</th>
+         <th>Setoran (Rp</th>
+         <th>Saldo Total (Rp</th>
+         </th>
+         <th>Cetak Copy</th>
+       </tr>
+     </thead>
+     <tbody id="transactionBody">
+     </tbody>
+   </table>
+ <!-- Hidden templates for receipt -->
+ <template id="receipt-template">
+   <div id="receiptContent" style="white-space: pre; font-family: monospace; font-size: 12px; max-width: 280px; padding: 10px;">
+     <strong>STRUK TABUNGAN PASAR</strong>
+      \n--------------------------------
+      \nTanggal    : {tanggal}
+      \nPasar     : {pasar}
+      \nPelanggan : {pelanggan}
+      \n--------------------------------
+      \nSaldo Sebelumnya : Rp {saldoSebelumnya}
+      \nSetoran         : Rp {setoran}
+      \n--------------------------------
+      \nSaldo Total     : Rp {saldoTotal}
+      \n\nTerima Kasih!
+   </template>
+
+ <template id="receipt-copy-template">
+   <div id="receiptCopyContent" style="white-space: pre; font-family: monospace; font-size: 11px; max-width: 280px; padding: 8px;">
+     <strong>STRUK TABUNGAN PASAR - COPY</strong>
+      \n--------------------------------
+      \nTanggal    : {tanggal}
+      \nPasar     : {pasar}
+      \nPelanggan : {pelanggan}
+      \n--------------------------------
+      \nSaldo Sebelumnya : Rp {saldoSebelumnya}
+      \nSetoran         : Rp {setoran}
+      \n--------------------------------
+      \nSaldo Total     : Rp {saldoTotal}
+      \n\nTerima Kasih!
+   </template>
+
+<script>
+(() => {
+  // Predefined market and customer data (could be dynamic later)
+  const markets = [
+    'Pasar Tradisional A',
+    'Pasar Modern B',
+    'Pasar Sentral C',
+    'Pasar Pagi D',
+    'Pasar Malam E'
+  ];
+
+  const customers = [
+    'Andi Wijaya',
+    'Budi Santoso',
+    'Citra Dewi',
+    'Dewi Anggraini',
+    'Eka Putri'
+  ];
+
+  // Utility function to format number as Indonesian Rupiah currency with thousand separator dots
+  function formatRupiah(value) {
+    if(isNaN(value)) return '0';
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') ;
+  }
+
+  // Utility: convert ISO date to readable dd-mm-yyyy
+  function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    const dd = ("0"+d.getDate()).slice(-2);
+    const mm = ("0"+(d.getMonth()+1)).slice(-2);
+    const yyyy = d.getFullYear();
+    return dd + '-' + mm + '-' + yyyy;
+  }
+
+  // Utility: Clean input by removing non-digit characters
+  function cleanNumberInput(str) {
+    return str.replace(/[^0-9]/g, '');
+  }
+
+  // Elements
+  const tanggalInput = document.getElementById('tanggal');
+  const pasarSelect = document.getElementById('pasar');
+  const pelangganSelect = document.getElementById('pelanggan');
+  const saldoSaatIniInput = document.getElementById('saldoSaatIni');
+  const setoranInput = document.getElementById('setoran');
+  const saldoTotalInput = document.getElementById('saldoTotal');
+  const btnTambah = document.getElementById('btnTambah');
+  const messageDiv = document.getElementById('message');
+  const transactionBody = document.getElementById('transactionBody');
+  const btnExportExcel = document.getElementById('btnExportExcel');
+  const btnConnectPrinter = document.getElementById('btnConnectPrinter');
+
+  // Storage keys
+  const STORAGE_KEY = 'market-savings-data';
+
+  // Data structure to hold transactions
+  let transactions = [];
+  // Map for current balances by customer
+  let customerBalances = {};
+
+  // Bluetooth printer device and characteristic (for text sending)
+  let bluetoothDevice = null;
+  let bluetoothCharacteristic = null;
+
+  // Fill market and customer dropdowns
+  function populateSelectOptions() {
+    markets.forEach(m => {
+      const option = document.createElement('option');
+      option.value = m;
+      option.textContent = m;
+      pasarSelect.appendChild(option);
+    });
+    customers.forEach(c => {
+      const option = document.createElement('option');
+      option.value = c;
+      option.textContent = c;
+      pelangganSelect.appendChild(option);
+    });
+  }
+
+  // Load stored transactions from localStorage
+  function loadData() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      try {
+        transactions = JSON.parse(data);
+        recalcBalances();
+        renderTransactions();
+      } catch(e) {
+        transactions = [];
+        customerBalances = {};
+      }
+    }
+  }
+
+  // Save transactions to localStorage
+  function saveData() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+  }
+
+  // Recalculate balances by customer based on transactions list
+  function recalcBalances() {
+    customerBalances = {};
+    transactions.forEach(t => {
+      const cust = t.pelanggan;
+      const prevBal = customerBalances[cust] || 0;
+      customerBalances[cust] = prevBal + t.setoran;
+    });
+  }
+
+  // Update saldoSaatIniInput based on selected customer, show formatted rupiah with dots
+  function updateSaldoSaatIni() {
+    const cust = pelangganSelect.value;
+    const saldo = customerBalances[cust] || 0;
+    saldoSaatIniInput.value = formatRupiah(saldo);
+    updateSaldoTotal();
+  }
+
+  // Update saldoTotalInput based on saldoSaatIni and setoran, show formatted rupiah with dots
+  function updateSaldoTotal() {
+    const saldoAwalStr = saldoSaatIniInput.value.replace(/\./g, '');
+    const saldoAwal = Number(saldoAwalStr) || 0;
+
+    const setoranStr = cleanNumberInput(setoranInput.value);
+    const setoran = Number(setoranStr) || 0;
+
+    const saldoTotal = saldoAwal + setoran;
+    saldoTotalInput.value = formatRupiah(saldoTotal);
+  }
+
+  // Render all transactions rows in table
+  function renderTransactions() {
+    transactionBody.innerHTML = '';
+    transactions.forEach((t, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+       <td>${formatDate(t.tanggal</td>
+       <td>${t.pasar</td>
+       <td>${t.pelanggan</td>
+       <td>${formatRupiah(t.saldoSebelumnya</td>
+       <td>${formatRupiah(t.setoran</td>
+       <td>${formatRupiah(t.saldoTotal</td>
+       <button class="btnPrint" data-index="${i}" aria-label="Cetak struk transaksi tanggal ${formatDate(t.tanggal)} pelanggan ${t.pelanggan}">Cetak</td>
+       <button class="btnPrintCopy" data-index="${i}" aria-label="Cetak salinan struk transaksi tanggal ${formatDate(t.tanggal)} pelanggan ${t.pelanggan}">Cetak Copy</td>
+      `;
+      transactionBody.appendChild(tr);
+    });
+  }
+
+  // Clear message
+  function clearMessage() {
+    messageDiv.textContent = '';
+  }
+
+  // Show error message for 3 seconds
+  function showMessage(msg, isError = true) {
+    messageDiv.textContent = msg;
+    messageDiv.style.color = isError ? 'red' : 'green';
+    setTimeout(() => {
+      messageDiv.textContent = '';
+    }, 3000);
+  }
+
+  // Validate form inputs
+  function validateInputs() {
+    if (!tanggalInput.value) {
+      showMessage('Tanggal tabungan harus diisi!');
+      tanggalInput.focus();
+      return false;
+    }
+    if (!pasarSelect.value) {
+      showMessage('Pasar harus dipilih!');
+      pasarSelect.focus();
+      return false;
+    }
+    if (!pelangganSelect.value) {
+      showMessage('Pelanggan harus dipilih!');
+      pelangganSelect.focus();
+      return false;
+    }
+    const setoranStr = cleanNumberInput(setoranInput.value);
+    const setoran = Number(setoranStr);
+    if (isNaN(setoran) || setoran<= 0) {
+      showMessage('Jumlah setoran harus lebih dari 0!');
+      setoranInput.focus();
+      return false;
+    }
+    return true;
+  }
+
+  // Add a new transaction and save
+  function addTransaction() {
+    if (!validateInputs()) return;
+    const tanggal = tanggalInput.value;
+    const pasar = pasarSelect.value;
+    const pelanggan = pelangganSelect.value;
+
+    // Get saldo sebelumnya as raw number
+    const saldoSebelumnya = customerBalances[pelanggan] || 0;
+
+    const setoranStr = cleanNumberInput(setoranInput.value);
+    const setoran = Number(setoranStr);
+
+    const saldoTotal = saldoSebelumnya + setoran;
+
+    const transaction = { tanggal, pasar, pelanggan, saldoSebelumnya, setoran, saldoTotal };
+
+    transactions.push(transaction);
+    customerBalances[pelanggan] = saldoTotal;
+    saveData();
+    renderTransactions();
+    clearInputsAfterAdd();
+    showMessage('Data tabungan berhasil ditambahkan.', false);
+  }
+
+  // Clear inputs except date and dropdowns (keep date for continued use)
+  function clearInputsAfterAdd() {
+    // tanggalInput.value = ''; // keep date for convenience
+    setoranInput.value = '';
+    updateSaldoSaatIni();
+  }
+
+  // Prepare receipt text content from transaction
+  function generateReceiptText(t) {
+    return `STRUK TABUNGAN PASAR
+--------------------------------
+Tanggal    : ${formatDate(t.tanggal)}
+Pasar     : ${t.pasar}
+Pelanggan : ${t.pelanggan}
+--------------------------------
+Saldo Sebelumnya : Rp ${formatRupiah(t.saldoSebelumnya)}
+Setoran         : Rp ${formatRupiah(t.setoran)}
+--------------------------------
+Saldo Total     : Rp ${formatRupiah(t.saldoTotal)}
+
+Terima Kasih!
+`;
+  }
+  // Prepare receipt copy text
+  function generateReceiptCopyText(t) {
+    return `STRUK TABUNGAN PASAR - COPY
+--------------------------------
+Tanggal    : ${formatDate(t.tanggal)}
+Pasar     : ${t.pasar}
+Pelanggan : ${t.pelanggan}
+--------------------------------
+Saldo Sebelumnya : Rp ${formatRupiah(t.saldoSebelumnya)}
+Setoran         : Rp ${formatRupiah(t.setoran)}
+--------------------------------
+Saldo Total     : Rp ${formatRupiah(t.saldoTotal)}
+
+Terima Kasih!
+`;
+  }
+
+  // Print receipt in new window
+  function printReceipt(t, isCopy = false) {
+    const printWindow = window.open('', '_blank', 'width=320,height=480');
+    const receiptText = isCopy ? generateReceiptCopyText(t) : generateReceiptText(t);
+    printWindow.document.write<pre style="font-family: monospace; font-size:14px; padding: 12px;">${receiptText</pre>`);
+    printWindow.document.title = isCopy ? 'Salinan Struk Tabungan Pasar' : 'Struk Tabungan Pasar';
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
+
+  // Export data to CSV and download as Excel-compatible .csv file
+  function exportToExcel() {
+    if (transactions.length === 0) {
+      showMessage('Tidak ada data untuk diexport.');
+      return;
+    }
+    const headers = ['Tanggal','Pasar','Pelanggan','Saldo Sebelumnya','Setoran','Saldo Total'];
+    const csvRows = [headers.join(',')];
+    transactions.forEach(t => {
+      const row = [
+        formatDate(t.tanggal),
+        "${t.pasar}",
+        "${t.pelanggan}",
+        t.saldoSebelumnya,
+        t.setoran,
+        t.saldoTotal
+      ];
+      csvRows.push(row.join(','));
+    });
+    const csvString = csvRows.join('\r\n');
+    const blob = new Blob([csvString], {type: 'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tabungan_pasar.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Bluetooth printer connection functions
+  async function connectBluetoothPrinter() {
+    try {
+      messageDiv.textContent = 'Mencari printer Bluetooth...';
+      const options = {
+        filters: [
+          {services: ['battery_service']}, // Common service included just for initial filter
+        ],
+        optionalServices: ['printer_service', 'serial_port']
+      };
+      bluetoothDevice = await navigator.bluetooth.requestDevice(options);
+      bluetoothDevice.addEventListener('gattserverdisconnected', onBluetoothDisconnected);
+      messageDiv.textContent = 'Menghubungkan ke printer...';
+      const server = await bluetoothDevice.gatt.connect();
+
+      const services = await server.getPrimaryServices();
+      let characteristic = null;
+      for (const service of services) {
+        try {
+          const characteristics = await service.getCharacteristics();
+          for (const c of characteristics) {
+            if (c.properties.write || c.properties.writeWithoutResponse) {
+              characteristic = c;
+              break;
+            }
+          }
+          if (characteristic) break;
+        } catch (e) {
+        }
+      }
+      if (!characteristic) {
+        showMessage('Tidak dapat menemukan karakteristik untuk menulis ke printer Bluetooth.');
+        bluetoothDevice.gatt.disconnect();
+        return;
+      }
+      bluetoothCharacteristic = characteristic;
+      showMessage('Printer Bluetooth berhasil terhubung.', false);
+    } catch (error) {
+      showMessage('Gagal menghubungkan printer Bluetooth: ' + error.message);
+      bluetoothDevice = null;
+      bluetoothCharacteristic = null;
+    }
+  }
+
+  // On Bluetooth disconnected
+  function onBluetoothDisconnected() {
+    showMessage('Printer Bluetooth terputus.');
+    bluetoothDevice = null;
+    bluetoothCharacteristic = null;
+  }
+
+  // Send text string to Bluetooth printer
+  async function sendToBluetoothPrinter(text) {
+    if (!bluetoothCharacteristic) {
+      showMessage('Printer Bluetooth belum terhubung.');
+      return;
+    }
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text + '\n\n\n');
+      const chunkSize = 20;
+      for(let i=0; i<data.length; i += chunkSize) {
+        const chunk = data.slice(i, i+chunkSize);
+        await bluetoothCharacteristic.writeValue(chunk);
+        await new Promise(r=>setTimeout(r,50));
+      }
+      showMessage('Struk berhasil dicetak ke printer Bluetooth.', false);
+    } catch (err) {
+      showMessage('Gagal mengirim data ke printer Bluetooth: ' + err.message);
+    }
+  }
+
+  // Event handlers and initialization
+  function addEventListeners() {
+    pelangganSelect.addEventListener('change', () => {
+      updateSaldoSaatIni();
+    });
+    setoranInput.addEventListener('input', () => {
+      let cleaned = cleanNumberInput(setoranInput.value);
+      if (cleaned === '') {
+        setoranInput.value = '';
+        updateSaldoTotal();
+        return;
+      }
+      // Parse to number and reformat with dots
+      let numeric = Number(cleaned);
+      if (isNaN(numeric)) {
+        numeric = 0;
+      }
+      let formatted = formatRupiah(numeric);
+      setoranInput.value = formatted;
+      updateSaldoTotal();
+    });
+    btnTambah.addEventListener('click', addTransaction);
+    btnExportExcel.addEventListener('click', exportToExcel);
+    btnConnectPrinter.addEventListener('click', () => {
+      if (!navigator.bluetooth) {
+        showMessage('Web Bluetooth tidak didukung di browser ini.');
+        return;
+      }
+      connectBluetoothPrinter();
+    });
+    transactionBody.addEventListener('click', e => {
+      if (e.target.classList.contains('btnPrint')) {
+        const idx = Number(e.target.dataset.index);
+        if (!isNaN(idx)) {
+          printReceipt(transactions[idx]);
+          if (bluetoothCharacteristic) {
+            sendToBluetoothPrinter(generateReceiptText(transactions[idx]));
+          }
+        }
+      }
+      if (e.target.classList.contains('btnPrintCopy')) {
+        const idx = Number(e.target.dataset.index);
+        if (!isNaN(idx)) {
+          printReceipt(transactions[idx], true);
+          if (bluetoothCharacteristic) {
+            sendToBluetoothPrinter(generateReceiptCopyText(transactions[idx]));
+          }
+        }
+      }
+    });
+  }
+
+  // Initialize the app
+  function init() {
+    populateSelectOptions();
+    loadData();
+    updateSaldoSaatIni();
+    addEventListeners();
+    const today = new Date().toISOString().split('T')[0];
+    tanggalInput.value = today;
+  }
+
+  // Start
+  init();
+})();
+</script>
