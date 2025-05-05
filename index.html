@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Aplikasi Input Tabungan Pasar</title>
+  <style>
+    /* Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      max-width: 350px;
+      height: 600px;
+      overflow: hidden;
+    }
+    #app {
+      padding: 10px 15px;
+      max-height: 100vh;
+      overflow-y: auto;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      color: #2a7ae2;
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    input[type=date], select, input[type=text] {
+      width: 100%;
+      padding: 8px 10px;
+      margin-top: 4px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    input[type=text]::-webkit-inner-spin-button,
+    input[type=text]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=text] {
+      -moz-appearance: textfield;
+    }
+    .readonly-input {
+      background: #eee;
+    }
+    button {
+      margin-top: 15px;
+      background: #2a7ae2;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 8px rgb(42 122 226 / 0.3);
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover:not(:disabled) {
+      background: #255db5;
+    }
+    button:disabled {
+      background: #a3c0f8;
+      cursor: default;
+    }
+    .btn-secondary {
+      background: #444;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #222;
+    }
+    #transactions {
+      margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.85rem;
+    }
+    #transactions th, #transactions td {
+      border: 1px solid #ddd;
+      padding: 6px 8px;
+      text-align: center;
+      vertical-align: middle;
+    }
+    #transactions th {
+      background: #2a7ae2;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    #message {
+      margin-top: 10px;
+      color: red;
+      font-weight: 600;
+      text-align: center;
+    }
+    /* Receipt styling for print */
+    #receipt-template {
+      font-family: monospace, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      padding: 15px;
+    }
+    #receipt-copy-template {
+      font-family: monospace, monospace;
+      font-size: 11px;
+      white-space: pre-wrap;
+      padding: 12px;
+    }
+    /* Scrollbar styling for mobile */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a7ae2;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #eee;
+    }
+    /* Responsive text scaling for mobile */
+    @media (max-width: 350px) {
+      h1 {
+        font-size: 1.4rem;
+      }
+      button {
+        font-size: 1rem;
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" role="main" aria-label="Aplikasi Input Tabungan Pasar">
+    <h1>Input Tabungan Pasar</h1>
+
+    <label for="tanggal">Tanggal Tabungan</label>
+    <input type="date" id="tanggal" aria-required="true" />
+
+    <label for="pasar">Pilih Pasar</label>
+    <select id="pasar" aria-required="true" aria-label="Daftar Pasar">
+      <option value="">-- Pilih Pasar --</option>
+    </select>
+
+    <label for="pelanggan">Pilih Pelanggan</label>
+    <select id="pelanggan" aria-required="true" aria-label="Daftar Pelanggan">
+      <option value="">-- Pilih Pelanggan --</option>
+    </select>
+
+    <label for="jenisTabungan">Jenis Tabungan</label>
+    <select id="jenisTabungan" aria-required="true" aria-label="Jenis Tabungan">
+      <option value="">-- Pilih Jenis Tabungan --</option>
+    </select>
+
+    <label for="tipeTransaksi">Tipe Transaksi</label>
+    <select id="tipeTransaksi" aria-required="true" aria-label="Tipe Transaksi">
+      <option value="">-- Pilih Tipe Transaksi --</option>
+      <option value="Debit">Debit</option>
+      <option value="Kredit">Kredit</option>
+      <option value="Cicilan">Cicilan</option>
+    </select>
+
+    <label for="jumlahTransaksi">Jumlah (Rp)</label>
+    <input type="text" id="jumlahTransaksi" inputmode="numeric" pattern="[0-9]*" placeholder="Masukkan jumlah transaksi" aria-required="true" />
+
+    <label for="saldoSaatIni">Saldo Tabungan Saat Ini (Rp)</label>
+    <input type="text" id="saldoSaatIni" readonly class="readonly-input" aria-readonly="true" value="0" />
+
+    <label for="saldoTotal">Saldo Total Setelah Transaksi (Rp)</label>
+    <input type="text" id="saldoTotal" readonly class="readonly-input" aria-readonly="true" value="0" />
+
+    <button id="btnTambah">Input</button>
+    <button id="btnExportExcel" class="btn-secondary">Export Semua Data ke Excel</button>
+    <button id="btnConnectPrinter" class="btn-secondary">Hubungkan Printer Bluetooth</button>
+    <div id="message" role="alert" aria-live="polite"></div>
+
+    <table id="transactions" aria-label="Daftar tabungan pelanggan">
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Pasar</th>
+          <th>Pelanggan</th>
+          <th>Jenis Tabungan</th>
+          <th>Tipe Transaksi</th>
+          <th>Saldo Sebelumnya (Rp)</th>
+          <th>Jumlah (Rp)</th>
+          <th>Saldo Total (Rp)</th>
+          <th>Cetak</th>
+          <th>Cetak Copy</th>
+        </tr>
+      </thead>
+      <tbody id="transactionBody"></tbody>
+    </table>
+
+    <!-- Hidden templates for receipt -->
+    <template id="receipt-template">
+      <div id="receiptContent" style="white-space: pre; font-family: monospace; font-size: 12px; max-width: 280px; padding: 10px;">
+        <strong>STRUK TABUNGAN PASAR</strong>
+        \n--------------------------------
+        \nTanggal       : {tanggal}
+        \nPasar        : {pasar}
+        \nPelanggan    : {pelanggan}
+        \nJenis Tabungan: {jenisTabungan}
+        \nTipe Transaksi: {tipeTransaksi}
+        \n--------------------------------
+        \nSaldo Sebelumnya : Rp {saldoSebelumnya}
+        \nJumlah          : Rp {jumlah}
+        \n--------------------------------
+        \nSaldo Total     : Rp {saldoTotal}
+        \n\nTerima Kasih!
+      </div>
+    </template>
+
+    <template id="receipt-copy-template">
+      <div id="receiptCopyContent" style="white-space: pre; font-family: monospace; font-size: 11px; max-width: 280px; padding: 8px;">
+        <strong>STRUK TABUNGAN PASAR - COPY</strong>
+        \n--------------------------------
+        \nTanggal       : {tanggal}
+        \nPasar        : {pasar}
+        \nPelanggan    : {pelanggan}
+        \nJenis Tabungan: {jenisTabungan}
+        \nTipe Transaksi: {tipeTransaksi}
+        \n--------------------------------
+        \nSaldo Sebelumnya : Rp {saldoSebelumnya}
+        \nJumlah          : Rp {jumlah}
+        \n--------------------------------
+        \nSaldo Total     : Rp {saldoTotal}
+        \n\nTerima Kasih!
+      </div>
+    </template>
+  </div>
+
+<script>
+(() => {
+  const markets = [
+    'RANCA BENTANG','CIMINDI','BAROS','ANTRI','DIMENSI','ES KELAPA','KUPAT TAHU','LAPANG MGG'
+  ];
+
+  const customers = [
+    { pasar: 'RANCA BENTANG', pelanggan: 'SARJI' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'S. RAKIM' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'HARIYANTO' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'SRI ATUN' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'TEGUH BUDHI' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'SUTARKO' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'TATANG SURYANA' },
+    { pasar: 'RANCA BENTANG', pelanggan: 'TAOFIK MOCHAMAD RAMDANI' },
+    { pasar: 'CIMINDI', pelanggan: 'PARINO' },
+    { pasar: 'CIMINDI', pelanggan: 'AKIAT' },
+    { pasar: 'CIMINDI', pelanggan: 'NURHAYATI' },
+    { pasar: 'BAROS', pelanggan: 'WALUYO RIDWAN' },
+    { pasar: 'BAROS', pelanggan: 'LADI SUCIPTO' },
+    { pasar: 'BAROS', pelanggan: 'LAUDINAR BERLIANISA' },
+    { pasar: 'BAROS', pelanggan: 'MOHAMAD SHULTON ALAMSYAH' },
+    { pasar: 'BAROS', pelanggan: 'HERU WIBOWO' },
+    { pasar: 'BAROS', pelanggan: 'RAFKA RIFKI' },
+    { pasar: 'BAROS', pelanggan: 'HENNY SRI SUWARNY SUHERMA' },
+    { pasar: 'BAROS', pelanggan: 'ILHAM' },
+    { pasar: 'BAROS', pelanggan: 'NAYLA PUTRI AZIZAH' },
+    { pasar: 'BAROS', pelanggan: 'ALFIT RIZQILLAH' },
+    { pasar: 'BAROS', pelanggan: 'ANDALUSIA' },
+    { pasar: 'BAROS', pelanggan: 'SUYATI' },
+    { pasar: 'BAROS', pelanggan: 'AN NIDA NURUL FAUZIYYAH A' },
+    { pasar: 'BAROS', pelanggan: 'NINA MINAWATI' },
+    { pasar: 'BAROS', pelanggan: 'MIMIN SUMINAR' },
+    { pasar: 'BAROS', pelanggan: 'SUTRISNO' },
+    { pasar: 'BAROS', pelanggan: 'SOBIRIN' },
+    { pasar: 'BAROS', pelanggan: 'CAHYANTO' },
+    { pasar: 'BAROS', pelanggan: 'KOMARUDIN' },
+    { pasar: 'BAROS', pelanggan: 'JUMIATI' },
+    { pasar: 'BAROS', pelanggan: 'MUHAMMAD AMIR ABDULLOH SY' },
+    { pasar: 'BAROS', pelanggan: 'MUHAMMAD HUDA NURFAUZI' },
+    { pasar: 'BAROS', pelanggan: 'TUMISIH' },
+    { pasar: 'BAROS', pelanggan: 'SULASMI' },
+    { pasar: 'ANTRI', pelanggan: 'CECEP ROSIDIN' },
+    { pasar: 'ANTRI', pelanggan: 'MEI TRIANA MULYADI' },
+    { pasar: 'ANTRI', pelanggan: 'MUHAMMAD RAFI' },
+    { pasar: 'ANTRI', pelanggan: 'AHMAD ARFI FIRDAUS' },
+    { pasar: 'ANTRI', pelanggan: 'TRI MURTI NINGSIH' },
+    { pasar: 'ANTRI', pelanggan: 'SUGIHARTO' },
+    { pasar: 'ANTRI', pelanggan: 'KISWANTI' },
+    { pasar: 'ANTRI', pelanggan: 'ASNAWI' },
+    { pasar: 'ANTRI', pelanggan: 'MULYANA' },
+    { pasar: 'ANTRI', pelanggan: 'SUBEDJO EFENDI' },
+    { pasar: 'ANTRI', pelanggan: 'SURYANTI' },
+    { pasar: 'ANTRI', pelanggan: 'SURYA' },
+    { pasar: 'ANTRI', pelanggan: 'ATI MIRANTI' },
+    { pasar: 'DIMENSI', pelanggan: 'SULARDI' },
+    { pasar: 'DIMENSI', pelanggan: 'SITI ULFAH HASANAH' },
+    { pasar: 'DIMENSI', pelanggan: 'PURWANTI' },
+    { pasar: 'DIMENSI', pelanggan: 'SARWANTO/ WARTO UTOMO' },
+    { pasar: 'DIMENSI', pelanggan: 'SITI NUR FEBIYANTI' },
+    { pasar: 'DIMENSI', pelanggan: 'LUKMAN NUR HASAN' },
+    { pasar: 'DIMENSI', pelanggan: 'DWI WAHYU NINGSIH' },
+    { pasar: 'DIMENSI', pelanggan: 'M. AFFAN ABRISAM NURHASAN' },
+    { pasar: 'DIMENSI', pelanggan: 'RUSWAN' },
+    { pasar: 'ES KELAPA', pelanggan: 'SOERYOWATI' },
+    { pasar: 'KUPAT TAHU', pelanggan: 'NINA MARLINA' },
+    { pasar: 'LAPANG MGG', pelanggan: 'AYUNDA RODIANA' }
+  ];
+
+  const jenisTabunganOptions = [
+    { code: '01', label: 'Wadiah' },
+    { code: '04', label: 'Haji' },
+    { code: '05', label: 'Umroh' },
+    { code: '07', label: 'Parcel' }
+  ];
+
+  const tipeTransaksiOptions = [
+    'Debit',
+    'Kredit',
+    'Cicilan'
+  ];
+
+  const pasarSelect = document.getElementById('pasar');
+  const pelangganSelect = document.getElementById('pelanggan');
+  const jenisTabunganSelect = document.getElementById('jenisTabungan');
+  const tipeTransaksiSelect = document.getElementById('tipeTransaksi');
+  const jumlahInput = document.getElementById('jumlahTransaksi');
+  const saldoSaatIniInput = document.getElementById('saldoSaatIni');
+  const saldoTotalInput = document.getElementById('saldoTotal');
+  const btnTambah = document.getElementById('btnTambah');
+  const messageDiv = document.getElementById('message');
+  const transactionBody = document.getElementById('transactionBody');
+  const tanggalInput = document.getElementById('tanggal');
+
+  const STORAGE_KEY = 'market-savings-data';
+
+  let transactions = [];
+  let customerBalances = {};
+
+  function populatePasarOptions() {
+    pasarSelect.innerHTML = '<option value="">-- Pilih Pasar --</option>';
+    markets.forEach(market => {
+      const option = document.createElement('option');
+      option.value = market;
+      option.textContent = market;
+      pasarSelect.appendChild(option);
+    });
+  }
+
+  function populatePelangganOptions(selectedPasar) {
+    pelangganSelect.innerHTML = '<option value="">-- Pilih Pelanggan --</option>';
+    if (!selectedPasar) return;
+    const filteredCustomers = customers.filter(c => c.pasar === selectedPasar);
+    const uniquePelanggan = [...new Set(filteredCustomers.map(c => c.pelanggan))];
+    uniquePelanggan.forEach(pelanggan => {
+      const option = document.createElement('option');
+      option.value = pelanggan;
+      option.textContent = pelanggan;
+      pelangganSelect.appendChild(option);
+    });
+  }
+
+  function populateJenisTabunganOptions() {
+    jenisTabunganSelect.innerHTML = '<option value="">-- Pilih Jenis Tabungan --</option>';
+    jenisTabunganOptions.forEach(j => {
+      const option = document.createElement('option');
+      option.value = j.code + ' ' + j.label;
+      option.textContent = j.code + ' ' + j.label;
+      jenisTabunganSelect.appendChild(option);
+    });
+  }
+
+  pasarSelect.addEventListener('change', () => {
+    populatePelangganOptions(pasarSelect.value);
+    pelangganSelect.value = '';
+    updateSaldoSaatIni();
+  });
+
+  pelangganSelect.addEventListener('change', updateSaldoSaatIni);
+  jenisTabunganSelect.addEventListener('change', updateSaldoSaatIni);
+
+  jumlahInput.addEventListener('input', () => {
+    let cleaned = cleanNumberInput(jumlahInput.value);
+    if (cleaned === '') {
+      jumlahInput.value = '';
+      updateSaldoTotal();
+      return;
+    }
+    let numeric = Number(cleaned);
+    if (isNaN(numeric)) numeric = 0;
+    jumlahInput.value = formatRupiah(numeric);
+    updateSaldoTotal();
+  });
+
+  tipeTransaksiSelect.addEventListener('change', updateSaldoTotal);
+
+  btnTambah.addEventListener('click', addTransaction);
+
+  tanggalInput.value = new Date().toISOString().split('T')[0];
+
+  function cleanNumberInput(str) {
+    return str.replace(/[^0-9]/g, '');
+  }
+
+  function formatRupiah(value) {
+    if (isNaN(value)) return '0';
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return '';
+    const dd = ("0" + d.getDate()).slice(-2);
+    const mm = ("0" + (d.getMonth() + 1)).slice(-2);
+    const yyyy = d.getFullYear();
+    return dd + '-' + mm + '-' + yyyy;
+  }
+
+  function getBalanceKey(pelanggan, jenisTabungan) {
+    return pelanggan + '||' + jenisTabungan;
+  }
+
+  function recalcBalances() {
+    customerBalances = {};
+    transactions.forEach(t => {
+      const key = getBalanceKey(t.pelanggan, t.jenisTabungan);
+      const prevBal = customerBalances[key] || 0;
+      let amount = t.jumlah;
+      if (t.tipeTransaksi === 'Kredit') amount = -amount;
+      customerBalances[key] = prevBal + amount;
+    });
+  }
+
+  function updateSaldoSaatIni() {
+    const pelanggan = pelangganSelect.value;
+    const jenisTabungan = jenisTabunganSelect.value;
+    if (!pelanggan || !jenisTabungan) {
+      saldoSaatIniInput.value = '0';
+      updateSaldoTotal();
+      return;
+    }
+    const key = getBalanceKey(pelanggan, jenisTabungan);
+    const saldo = customerBalances[key] || 0;
+    saldoSaatIniInput.value = formatRupiah(saldo);
+    updateSaldoTotal();
+  }
+
+  function updateSaldoTotal() {
+    const saldoAwalStr = saldoSaatIniInput.value.replace(/\./g, '');
+    const saldoAwal = Number(saldoAwalStr) || 0;
+
+    const jumlahStr = cleanNumberInput(jumlahInput.value);
+    let jumlah = Number(jumlahStr) || 0;
+
+    const tipeTransaksi = tipeTransaksiSelect.value;
+    if (tipeTransaksi === 'Kredit') jumlah = -jumlah;
+
+    const saldoTotal = saldoAwal + jumlah;
+    saldoTotalInput.value = formatRupiah(Math.max(saldoTotal, 0));
+  }
+
+  function renderTransactions() {
+    transactionBody.innerHTML = '';
+    transactions.forEach((t, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${formatDate(t.tanggal)}</td>
+        <td>${t.pasar}</td>
+        <td>${t.pelanggan}</td>
+        <td>${t.jenisTabungan}</td>
+        <td>${t.tipeTransaksi}</td>
+        <td>${formatRupiah(t.saldoSebelumnya)}</td>
+        <td>${formatRupiah(t.jumlah)}</td>
+        <td>${formatRupiah(t.saldoTotal)}</td>
+        <td><button class="btnPrint" data-index="${i}" aria-label="Cetak struk transaksi tanggal ${formatDate(t.tanggal)} pelanggan ${t.pelanggan} jenis tabungan ${t.jenisTabungan} tipe transaksi ${t.tipeTransaksi}">Cetak</button></td>
+        <td><button class="btnPrintCopy" data-index="${i}" aria-label="Cetak salinan struk transaksi tanggal ${formatDate(t.tanggal)} pelanggan ${t.pelanggan} jenis tabungan ${t.jenisTabungan} tipe transaksi ${t.tipeTransaksi}">Cetak Copy</button></td>
+      `;
+      transactionBody.appendChild(tr);
+    });
+  }
+
+  function showMessage(msg, isError = true) {
+    messageDiv.textContent = msg;
+    messageDiv.style.color = isError ? 'red' : 'green';
+    setTimeout(() => { messageDiv.textContent = ''; }, 3000);
+  }
+
+  function validateInputs() {
+    if (!tanggalInput.value) {
+      showMessage('Tanggal tabungan harus diisi!');
+      tanggalInput.focus();
+      return false;
+    }
+    if (!pasarSelect.value) {
+      showMessage('Pasar harus dipilih!');
+      pasarSelect.focus();
+      return false;
+    }
+    if (!pelangganSelect.value) {
+      showMessage('Pelanggan harus dipilih!');
+      pelangganSelect.focus();
+      return false;
+    }
+    if (!jenisTabunganSelect.value) {
+      showMessage('Jenis Tabungan harus dipilih!');
+      jenisTabunganSelect.focus();
+      return false;
+    }
+    if (!tipeTransaksiSelect.value) {
+      showMessage('Tipe Transaksi harus dipilih!');
+      tipeTransaksiSelect.focus();
+      return false;
+    }
+    const jumlahStr = cleanNumberInput(jumlahInput.value);
+    const jumlah = Number(jumlahStr);
+    if (isNaN(jumlah) || jumlah <= 0) {
+      showMessage('Jumlah transaksi harus lebih dari 0!');
+      jumlahInput.focus();
+      return false;
+    }
+    return true;
+  }
+
+  function addTransaction() {
+    if (!validateInputs()) return;
+    const tanggal = tanggalInput.value;
+    const pasar = pasarSelect.value;
+    const pelanggan = pelangganSelect.value;
+    const jenisTabungan = jenisTabunganSelect.value;
+    const tipeTransaksi = tipeTransaksiSelect.value;
+    const jumlahStr = cleanNumberInput(jumlahInput.value);
+    const jumlah = Number(jumlahStr);
+
+    const balanceKey = getBalanceKey(pelanggan, jenisTabungan);
+    const saldoSebelumnya = customerBalances[balanceKey] || 0;
+
+    let signedAmount = jumlah;
+    if (tipeTransaksi === 'Kredit') signedAmount = -jumlah;
+
+    const saldoTotal = saldoSebelumnya + signedAmount;
+
+    const transaction = {
+      tanggal,
+      pasar,
+      pelanggan,
+      jenisTabungan,
+      tipeTransaksi,
+      jumlah,
+      saldoSebelumnya,
+      saldoTotal
+    };
+
+    transactions.push(transaction);
+    customerBalances[balanceKey] = saldoTotal;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    renderTransactions();
+    clearInputsAfterAdd();
+    showMessage('Data tabungan berhasil ditambahkan.', false);
+  }
+
+  function clearInputsAfterAdd() {
+    jumlahInput.value = '';
+    updateSaldoSaatIni();
+  }
+
+  function loadData() {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      try {
+        transactions = JSON.parse(data);
+        recalcBalances();
+        renderTransactions();
+      } catch(e) {
+        transactions = [];
+        customerBalances = {};
+      }
+    }
+  }
+
+  function init() {
+    populatePasarOptions();
+    populateJenisTabunganOptions();
+    loadData();
+    updateSaldoSaatIni();
+    tanggalInput.value = new Date().toISOString().split('T')[0];
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
